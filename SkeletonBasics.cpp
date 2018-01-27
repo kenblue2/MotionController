@@ -448,7 +448,11 @@ struct FVector
 	FVector() {}
 
 	FVector(const Vector4& pos)
-		: Y(pos.x), Z(pos.y), X(pos.z) {}
+	{
+		X = pos.z * 100.f;
+		Y = pos.x * 100.f;
+		Z = pos.y * 100.f + 100.f;
+	}
 
 	float X, Y, Z;
 };
