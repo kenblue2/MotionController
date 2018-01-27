@@ -23,7 +23,7 @@ void __cdecl RecvThread(void * p)
 {
 	SOCKET sock = (SOCKET)p;
 	char buf[256];
-	while (1)
+	while (true)
 	{
 		int recvsize = recv(sock, buf, sizeof(buf), 0);
 		if (recvsize <= 0)
@@ -392,8 +392,18 @@ void CSkeletonBasics::ProcessSkeleton()
         return;
     }
 
+	NUI_TRANSFORM_SMOOTH_PARAMETERS params;
+	{
+		params.fSmoothing = 0.5f;
+		params.fCorrection = 0.5f;
+		params.fPrediction = 0.5f;
+		params.fJitterRadius = 0.05f;
+		params.fMaxDeviationRadius = 0.05f;
+	}
+
     // smooth out the skeleton data
-    m_pNuiSensor->NuiTransformSmooth(&skeletonFrame, NULL);
+    //m_pNuiSensor->NuiTransformSmooth(&skeletonFrame, NULL);
+	m_pNuiSensor->NuiTransformSmooth(&skeletonFrame, &params);
 
     // Endure Direct2D is ready to draw
     hr = EnsureDirect2DResources( );
@@ -477,6 +487,8 @@ void CSkeletonBasics::DrawSkeleton(const NUI_SKELETON_DATA & skel, int windowWid
     }
 
 	send(clnt_sock, (char*)BonePosList, sizeof(BonePosList), 0);
+
+	//Sleep(33);
 
 	// Render Torso
     DrawBone(skel, NUI_SKELETON_POSITION_HEAD, NUI_SKELETON_POSITION_SHOULDER_CENTER);
