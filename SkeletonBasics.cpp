@@ -397,8 +397,8 @@ void CSkeletonBasics::ProcessSkeleton()
 		params.fSmoothing = 0.5f;
 		params.fCorrection = 0.5f;
 		params.fPrediction = 0.5f;
-		params.fJitterRadius = 0.05f;
-		params.fMaxDeviationRadius = 0.05f;
+		params.fJitterRadius = 0.4f;
+		params.fMaxDeviationRadius = 0.4f;
 	}
 
     // smooth out the skeleton data
