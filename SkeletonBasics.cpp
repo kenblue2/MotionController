@@ -13,6 +13,7 @@
 
 #include <WinSock2.h>
 #include <process.h>
+#include <vector>
 
 #pragma comment (lib, "ws2_32.lib")
 
@@ -99,11 +100,11 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
 		CSkeletonBasics application;
 		application.Run(hInstance, nCmdShow);
 	}
-
+	
 	closesocket(clnt_sock);
 	closesocket(serv_sock);
 	WSACleanup();
-
+	
 	return TRUE;
 }
 
@@ -397,8 +398,8 @@ void CSkeletonBasics::ProcessSkeleton()
 		params.fSmoothing = 0.5f;
 		params.fCorrection = 0.5f;
 		params.fPrediction = 0.5f;
-		params.fJitterRadius = 0.4f;
-		params.fMaxDeviationRadius = 0.4f;
+		params.fJitterRadius = 0.5f;
+		params.fMaxDeviationRadius = 0.5f;
 	}
 
     // smooth out the skeleton data
@@ -453,21 +454,25 @@ void CSkeletonBasics::ProcessSkeleton()
     }
 }
 
+const float SCALE = 100.f;
+
 struct FVector
 {
 	FVector() {}
 
 	FVector(const Vector4& pos)
 	{
-		X = pos.z * 100.f;
-		Y = pos.x * 100.f;
-		Z = pos.y * 100.f + 100.f;
+		X = -pos.z * SCALE;
+		Y = pos.x * SCALE;
+		Z = pos.y * SCALE + SCALE;
 	}
 
 	float X, Y, Z;
 };
 
 FVector BonePosList[NUI_SKELETON_POSITION_COUNT];
+
+std::vector<Vector4> FootPosList;
 
 /// <summary>
 /// Draws a skeleton
@@ -481,10 +486,31 @@ void CSkeletonBasics::DrawSkeleton(const NUI_SKELETON_DATA & skel, int windowWid
 
     for (i = 0; i < NUI_SKELETON_POSITION_COUNT; ++i)
     {
-		m_Points[i] = SkeletonToScreen(skel.SkeletonPositions[i], windowWidth, windowHeight);
+		Vector4 BonePos = skel.SkeletonPositions[i];
+		BonePos.x = -BonePos.x;
+
+		//m_Points[i] = SkeletonToScreen(skel.SkeletonPositions[i], windowWidth, windowHeight);
+		m_Points[i] = SkeletonToScreen(BonePos, windowWidth, windowHeight);
 
 		BonePosList[i] = FVector(skel.SkeletonPositions[i]);
     }
+
+	Vector4 FootPos = skel.SkeletonPositions[NUI_SKELETON_POSITION_ANKLE_RIGHT];
+	FootPos.x = -FootPos.x;
+	FootPosList.push_back(FootPos);
+
+	if (FootPosList.size() > 100)
+	{
+		FootPosList.erase(FootPosList.begin());
+	}
+
+	for (int idxPos = 1; idxPos < (int)FootPosList.size(); ++idxPos)
+	{
+		D2D1_POINT_2F pos1 = SkeletonToScreen(FootPosList[idxPos - 1], windowWidth, windowHeight);
+		D2D1_POINT_2F pos2 = SkeletonToScreen(FootPosList[idxPos], windowWidth, windowHeight);
+
+		m_pRenderTarget->DrawLine(pos1, pos2, m_pBrushBoneTracked, 2.0f);
+	}
 
 	send(clnt_sock, (char*)BonePosList, sizeof(BonePosList), 0);
 
