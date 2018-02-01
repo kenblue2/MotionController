@@ -464,7 +464,7 @@ struct FVector
 	{
 		X = -pos.z * SCALE;
 		Y = pos.x * SCALE;
-		Z = pos.y * SCALE + SCALE;
+		Z = pos.y * SCALE + 80.f;
 	}
 
 	float X, Y, Z;
@@ -498,6 +498,12 @@ void CSkeletonBasics::DrawSkeleton(const NUI_SKELETON_DATA & skel, int windowWid
 	Vector4 FootPos = skel.SkeletonPositions[NUI_SKELETON_POSITION_ANKLE_RIGHT];
 	FootPos.x = -FootPos.x;
 	FootPosList.push_back(FootPos);
+
+
+	WCHAR msg[512];
+	swprintf_s(msg, L"foot height: %f", FootPos.y);
+
+	SetStatusMessage(msg);
 
 	if (FootPosList.size() > 100)
 	{
