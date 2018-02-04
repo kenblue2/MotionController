@@ -68,6 +68,9 @@ private:
     ID2D1SolidColorBrush*    m_pBrushJointInferred;
     ID2D1SolidColorBrush*    m_pBrushBoneTracked;
     ID2D1SolidColorBrush*    m_pBrushBoneInferred;
+	ID2D1SolidColorBrush*    m_pLimitHeight;
+	ID2D1SolidColorBrush*    m_pLimitVelocity;
+	ID2D1SolidColorBrush*    m_pMotionVector;
     D2D1_POINT_2F            m_Points[NUI_SKELETON_POSITION_COUNT];
 
     // Direct2D
