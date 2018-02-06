@@ -55,48 +55,48 @@ static const float g_InferredBoneThickness = 1.0f;
 /// <returns>status</returns>
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
-	//WSADATA wsaData;
-	//int retval = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	//if (retval != 0)
-	//{
-	//	printf("WSAStartup() Error\n");
-	//	return 0;
-	//}
+	WSADATA wsaData;
+	int retval = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (retval != 0)
+	{
+		printf("WSAStartup() Error\n");
+		return 0;
+	}
 
-	//SOCKET serv_sock;
-	//serv_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	//if (serv_sock == SOCKET_ERROR)
-	//{
-	//	printf("socket() Error\n");
-	//	return 0;
-	//}
+	SOCKET serv_sock;
+	serv_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (serv_sock == SOCKET_ERROR)
+	{
+		printf("socket() Error\n");
+		return 0;
+	}
 
-	//SOCKADDR_IN serv_addr = { 0 };
-	//serv_addr.sin_family = AF_INET;
-	//serv_addr.sin_port = htons(4000);
-	//serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	SOCKADDR_IN serv_addr = { 0 };
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(4000);
+	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	//retval = bind(serv_sock, (SOCKADDR*)&serv_addr, sizeof(SOCKADDR));
-	//if (retval == SOCKET_ERROR)
-	//{
-	//	printf("bind() Error\n");
-	//	return 0;
-	//}
+	retval = bind(serv_sock, (SOCKADDR*)&serv_addr, sizeof(SOCKADDR));
+	if (retval == SOCKET_ERROR)
+	{
+		printf("bind() Error\n");
+		return 0;
+	}
 
-	//listen(serv_sock, 5);
+	listen(serv_sock, 5);
 
-	//SOCKADDR_IN clnt_addr = { 0 };
-	//int size = sizeof(SOCKADDR_IN);
-	////SOCKET clnt_sock = accept(serv_sock, (SOCKADDR*)&clnt_addr, &size);
-	//clnt_sock = accept(serv_sock, (SOCKADDR*)&clnt_addr, &size);
-	//if (clnt_sock == SOCKET_ERROR)
-	//{
-	//	printf("accept() Error\n");
-	//	return 0;
-	//}
-	//printf("클라이언트 접속\n");
-	//printf("IP : %s, Port : %d\n", inet_ntoa(clnt_addr.sin_addr), clnt_addr.sin_port);
-	//HANDLE hThread = (HANDLE)_beginthread(RecvThread, NULL, (void*)clnt_sock);
+	SOCKADDR_IN clnt_addr = { 0 };
+	int size = sizeof(SOCKADDR_IN);
+	//SOCKET clnt_sock = accept(serv_sock, (SOCKADDR*)&clnt_addr, &size);
+	clnt_sock = accept(serv_sock, (SOCKADDR*)&clnt_addr, &size);
+	if (clnt_sock == SOCKET_ERROR)
+	{
+		printf("accept() Error\n");
+		return 0;
+	}
+	printf("클라이언트 접속\n");
+	printf("IP : %s, Port : %d\n", inet_ntoa(clnt_addr.sin_addr), clnt_addr.sin_port);
+	HANDLE hThread = (HANDLE)_beginthread(RecvThread, NULL, (void*)clnt_sock);
 
 	// main
 	{
@@ -104,9 +104,9 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
 		application.Run(hInstance, nCmdShow);
 	}
 	
-	//closesocket(clnt_sock);
-	//closesocket(serv_sock);
-	//WSACleanup();
+	closesocket(clnt_sock);
+	closesocket(serv_sock);
+	WSACleanup();
 	
 	return TRUE;
 }
@@ -535,7 +535,6 @@ struct FSendInfo
 	bool bUseLeftFoot;
 
 	FVector MotionVectors[5];
-	FVector BonePosList[NUI_SKELETON_POSITION_COUNT];
 };
 
 FSendInfo SendInfo;
@@ -613,7 +612,7 @@ bool SearchMotionVector(const std::vector<FVector>& PosList, const std::vector<F
 	{
 		float speed = VelList[i].Size();
 
-		if (speed < 2.f)
+		if (speed < 4.f)
 		{
 			beginFrame = i;
 			break;
@@ -624,7 +623,7 @@ bool SearchMotionVector(const std::vector<FVector>& PosList, const std::vector<F
 	{
 		float speed = VelList[i].Size();
 
-		if (speed < 2.f)
+		if (speed < 4.f)
 		{
 			endFrame = i;
 			break;
@@ -673,32 +672,66 @@ void CSkeletonBasics::DrawSkeleton(const NUI_SKELETON_DATA & skel, int windowWid
 		Vector4 BonePos = skel.SkeletonPositions[i];
 		BonePos.x = -BonePos.x;
 
-		//m_Points[i] = SkeletonToScreen(skel.SkeletonPositions[i], windowWidth, windowHeight);
 		m_Points[i] = SkeletonToScreen(BonePos, windowWidth, windowHeight);
 
-		//BonePosList[i] = FVector(skel.SkeletonPositions[i]);
 		BonePosList[i] = FVector(BonePos);
     }
 
-	//FVector FootPos = FVector(skel.SkeletonPositions[NUI_SKELETON_POSITION_ANKLE_RIGHT]);
-	//FootPos.X = -FootPos.X;
-	FVector FootPos = BonePosList[NUI_SKELETON_POSITION_ANKLE_RIGHT];
-	
-	if (RightFootPosList.size() > 0)
+	// right foot
 	{
-		FVector FootVel = FootPos - RightFootPosList.back();
+		FVector RightFootPos = BonePosList[NUI_SKELETON_POSITION_ANKLE_RIGHT];
 
-		RightFootVelList.push_back(FootVel);
+		if (RightFootPosList.size() > 0)
+		{
+			FVector FootVel = RightFootPos - RightFootPosList.back();
+
+			RightFootVelList.push_back(FootVel);
+		}
+		else
+		{
+			FVector FootVel(0, 0, 0);
+
+			RightFootVelList.push_back(FootVel);
+		}
+
+		RightFootPosList.push_back(RightFootPos);
+		RightFootPosList2.push_back(m_Points[NUI_SKELETON_POSITION_ANKLE_RIGHT]);
+
+		if (RightFootPosList.size() > 100)
+		{
+			RightFootVelList.erase(RightFootVelList.begin());
+			RightFootPosList.erase(RightFootPosList.begin());
+			RightFootPosList2.erase(RightFootPosList2.begin());
+		}
 	}
-	else
+
+	// left foot
 	{
-		FVector FootVel(0, 0, 0);
+		FVector LeftFootPos = BonePosList[NUI_SKELETON_POSITION_ANKLE_LEFT];
 
-		RightFootVelList.push_back(FootVel);
+		if (LeftFootPosList.size() > 0)
+		{
+			FVector FootVel = LeftFootPos - LeftFootPosList.back();
+
+			LeftFootVelList.push_back(FootVel);
+		}
+		else
+		{
+			FVector FootVel(0, 0, 0);
+
+			LeftFootVelList.push_back(FootVel);
+		}
+
+		LeftFootPosList.push_back(LeftFootPos);
+		LeftFootPosList2.push_back(m_Points[NUI_SKELETON_POSITION_ANKLE_LEFT]);
+
+		if (LeftFootPosList.size() > 100)
+		{
+			LeftFootVelList.erase(LeftFootVelList.begin());
+			LeftFootPosList.erase(LeftFootPosList.begin());
+			LeftFootPosList2.erase(LeftFootPosList2.begin());
+		}
 	}
-
-	RightFootPosList.push_back(FootPos);
-	RightFootPosList2.push_back(m_Points[NUI_SKELETON_POSITION_ANKLE_RIGHT]);
 
 	//WCHAR msg[512];
 	//swprintf_s(msg, L"foot height: %f", FootPos.Y);
@@ -706,59 +739,87 @@ void CSkeletonBasics::DrawSkeleton(const NUI_SKELETON_DATA & skel, int windowWid
 
 	//SetStatusMessage(msg);
 
-	if (RightFootPosList.size() > 100)
+	// draw right foot graph
 	{
-		RightFootVelList.erase(RightFootVelList.begin());
-		RightFootPosList.erase(RightFootPosList.begin());
-		RightFootPosList2.erase(RightFootPosList2.begin());
+		float deltaX = float(windowWidth) / float(RightFootPosList.size());
+
+		for (int idxPos = 1; idxPos < (int)RightFootPosList.size(); ++idxPos)
+		{
+			const FVector& FP1 = RightFootPosList[idxPos - 1];
+			const FVector& FP2 = RightFootPosList[idxPos];
+
+			D2D1_POINT_2F pos1;
+			D2D1_POINT_2F pos2;
+
+			pos1.x = float(idxPos - 1) * deltaX;
+			pos2.x = float(idxPos) * deltaX;
+
+			pos1.y = windowHeight - FP1.Z * POS_SCALE;
+			pos2.y = windowHeight - FP2.Z * POS_SCALE;
+
+			m_pRenderTarget->DrawLine(pos1, pos2, m_pLimitHeight, 1);
+		}
+
+		for (int idxPos = 1; idxPos < (int)RightFootVelList.size(); ++idxPos)
+		{
+			const FVector& FP1 = RightFootVelList[idxPos - 1];
+			const FVector& FP2 = RightFootVelList[idxPos];
+
+			D2D1_POINT_2F pos1;
+			D2D1_POINT_2F pos2;
+
+			pos1.x = float(idxPos - 1) * deltaX;
+			pos2.x = float(idxPos) * deltaX;
+
+			pos1.y = windowHeight - FP1.Size() * VEL_SCALE;
+			pos2.y = windowHeight - FP2.Size() * VEL_SCALE;
+
+			m_pRenderTarget->DrawLine(pos1, pos2, m_pLimitVelocity, 1);
+		}
 	}
 
-	// 오른발 궤적 그리기
-	//for (int idxPos = 1; idxPos < (int)FootPosList.size(); ++idxPos)
-	//{
-	//	D2D1_POINT_2F pos1 = SkeletonToScreen(FootPosList[idxPos - 1], windowWidth, windowHeight);
-	//	D2D1_POINT_2F pos2 = SkeletonToScreen(FootPosList[idxPos], windowWidth, windowHeight);
-	//	m_pRenderTarget->DrawLine(pos1, pos2, m_pBrushBoneTracked, 2.0f);
-	//}
-
-	float deltaX = float(windowWidth) / float(RightFootPosList.size());
-
-	for (int idxPos = 1; idxPos < (int)RightFootPosList.size(); ++idxPos)
+	// draw left foot graph
 	{
-		const FVector& FP1 = RightFootPosList[idxPos - 1];
-		const FVector& FP2 = RightFootPosList[idxPos];
+		float deltaX = float(windowWidth) / float(LeftFootPosList.size());
 
-		D2D1_POINT_2F pos1;
-		D2D1_POINT_2F pos2;
+		for (int idxPos = 1; idxPos < (int)LeftFootPosList.size(); ++idxPos)
+		{
+			const FVector& FP1 = LeftFootPosList[idxPos - 1];
+			const FVector& FP2 = LeftFootPosList[idxPos];
 
-		pos1.x = float(idxPos - 1) * deltaX;
-		pos2.x = float(idxPos) * deltaX;
+			D2D1_POINT_2F pos1;
+			D2D1_POINT_2F pos2;
 
-		pos1.y = windowHeight - FP1.Z * POS_SCALE;
-		pos2.y = windowHeight - FP2.Z * POS_SCALE;
+			pos1.x = float(idxPos - 1) * deltaX;
+			pos2.x = float(idxPos) * deltaX;
 
-		m_pRenderTarget->DrawLine(pos1, pos2, m_pLimitHeight, 1);
+			pos1.y = windowHeight - FP1.Z * POS_SCALE;
+			pos2.y = windowHeight - FP2.Z * POS_SCALE;
+
+			m_pRenderTarget->DrawLine(pos1, pos2, m_pLimitHeight, 1);
+		}
+
+		for (int idxPos = 1; idxPos < (int)LeftFootVelList.size(); ++idxPos)
+		{
+			const FVector& FP1 = LeftFootVelList[idxPos - 1];
+			const FVector& FP2 = LeftFootVelList[idxPos];
+
+			D2D1_POINT_2F pos1;
+			D2D1_POINT_2F pos2;
+
+			pos1.x = float(idxPos - 1) * deltaX;
+			pos2.x = float(idxPos) * deltaX;
+
+			pos1.y = windowHeight - FP1.Size() * VEL_SCALE;
+			pos2.y = windowHeight - FP2.Size() * VEL_SCALE;
+
+			m_pRenderTarget->DrawLine(pos1, pos2, m_pLimitVelocity, 1);
+		}
 	}
-
-	for (int idxPos = 1; idxPos < (int)RightFootVelList.size(); ++idxPos)
-	{
-		const FVector& FP1 = RightFootVelList[idxPos - 1];
-		const FVector& FP2 = RightFootVelList[idxPos];
-
-		D2D1_POINT_2F pos1;
-		D2D1_POINT_2F pos2;
-
-		pos1.x = float(idxPos - 1) * deltaX;
-		pos2.x = float(idxPos) * deltaX;
-
-		pos1.y = windowHeight - FP1.Size() * VEL_SCALE;
-		pos2.y = windowHeight - FP2.Size() * VEL_SCALE;
-
-		m_pRenderTarget->DrawLine(pos1, pos2, m_pLimitVelocity, 1);
-	}
+	
 
 	// draw limit line
-	/*{
+	{
 		float limitVelY = ATTACK_MIN_HEIGHT * POS_SCALE;
 		float limitPosY = windowHeight - limitVelY;
 
@@ -787,12 +848,58 @@ void CSkeletonBasics::DrawSkeleton(const NUI_SKELETON_DATA & skel, int windowWid
 		pos2.y = limitPosY;
 
 		m_pRenderTarget->DrawLine(pos1, pos2, m_pLimitVelocity, 2);
-	}*/
+	}
 
-	bool bAttack = IsHigher(RightFootPosList, ATTACK_MIN_HEIGHT);
-	bool bPass = IsFaster(RightFootVelList, PASS_MIN_VEL);
-	bool bToss = IsFaster(RightFootVelList, TOSS_MIN_VEL);
 
+	bool bAttack = false;
+	bool bPass = false;
+	bool bToss = false;
+	bool bUseLeftFoot;
+	bool bDoMotion = false;
+
+	// right foot
+	if (bDoMotion == false && RightFootVelList.back().Size() * VEL_SCALE < 4.f)
+	{
+		bAttack = IsHigher(RightFootPosList, ATTACK_MIN_HEIGHT);
+		bPass = IsFaster(RightFootVelList, PASS_MIN_VEL);
+		bToss = IsFaster(RightFootVelList, TOSS_MIN_VEL);
+
+		if (bAttack || bPass || bToss)
+		{
+			if (SearchMotionVector(RightFootPosList, RightFootVelList, RightFootPosList2))
+			{
+				RightFootVelList.clear();
+				RightFootPosList.clear();
+				RightFootPosList2.clear();
+
+				bDoMotion = true;
+				bUseLeftFoot = false;
+			}
+		}
+	}
+
+
+	// left foot
+	if (bDoMotion == false && LeftFootVelList.back().Size() * VEL_SCALE < 4.f)
+	{
+		bAttack = IsHigher(LeftFootPosList, ATTACK_MIN_HEIGHT);
+		bPass = IsFaster(LeftFootVelList, PASS_MIN_VEL);
+		bToss = IsFaster(LeftFootVelList, TOSS_MIN_VEL);
+
+		if (bAttack || bPass || bToss)
+		{
+			if (SearchMotionVector(LeftFootPosList, LeftFootVelList, LeftFootPosList2))
+			{
+				LeftFootVelList.clear();
+				LeftFootPosList.clear();
+				LeftFootPosList2.clear();
+
+				bDoMotion = true;
+				bUseLeftFoot = true;
+			}
+		}
+	}
+		
 	if (bAttack)
 	{
 		SetStatusMessage(L"current motion: Attack");
@@ -810,43 +917,29 @@ void CSkeletonBasics::DrawSkeleton(const NUI_SKELETON_DATA & skel, int windowWid
 		SetStatusMessage(L"current motion: Idle");
 	}
 
-	bool bSearchMotionVector = false;
-	if (bAttack || bPass || bToss)
-	{
-		if (RightFootVelList.back().Size() * VEL_SCALE < 2.f)
-		{
-			bSearchMotionVector = SearchMotionVector(RightFootPosList, RightFootVelList, RightFootPosList2);
-
-			RightFootVelList.clear();
-			RightFootPosList.clear();
-			RightFootPosList2.clear();
-		}
-	}
-
 	m_pRenderTarget->DrawLine(MotionVectors2[0], MotionVectors2[1], m_pMotionVector, 3);
 	m_pRenderTarget->DrawLine(MotionVectors2[1], MotionVectors2[2], m_pMotionVector, 3);
 	m_pRenderTarget->DrawLine(MotionVectors2[2], MotionVectors2[3], m_pMotionVector, 3);
 	m_pRenderTarget->DrawLine(MotionVectors2[3], MotionVectors2[4], m_pMotionVector, 3);
 
 
-	SendInfo.bAttack = bAttack;
-	SendInfo.bPass = bAttack;
-	SendInfo.bToss = bAttack;
-
-	for (int i = 0; i < NUI_SKELETON_POSITION_COUNT; ++i)
+	if (bDoMotion)
 	{
-		SendInfo.BonePosList[i] = BonePosList[i];
-	}
-	
-	for (int i = 0; i < 5; ++i)
-	{
-		SendInfo.MotionVectors[i] = MotionVectors[i];
+		SendInfo.bAttack = bAttack;
+		SendInfo.bPass = bPass;
+		SendInfo.bToss = bToss;
+		SendInfo.bUseLeftFoot = bUseLeftFoot;
+
+		for (int i = 0; i < 5; ++i)
+		{
+			SendInfo.MotionVectors[i] = MotionVectors[i];
+		}
+
+		send(clnt_sock, (char*)&SendInfo, sizeof(SendInfo), 0);
+
+		bDoMotion = false;
 	}
 
-	//send(clnt_sock, (char*)BonePosList, sizeof(BonePosList), 0);
-	send(clnt_sock, (char*)&SendInfo, sizeof(SendInfo), 0);
-
-	//Sleep(33);
 
 	// Render Torso
     DrawBone(skel, NUI_SKELETON_POSITION_HEAD, NUI_SKELETON_POSITION_SHOULDER_CENTER);
