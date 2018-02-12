@@ -819,7 +819,7 @@ void CSkeletonBasics::DrawSkeleton(const NUI_SKELETON_DATA & skel, int windowWid
 	
 
 	// draw limit line
-	{
+	/*{
 		float limitVelY = ATTACK_MIN_HEIGHT * POS_SCALE;
 		float limitPosY = windowHeight - limitVelY;
 
@@ -848,7 +848,7 @@ void CSkeletonBasics::DrawSkeleton(const NUI_SKELETON_DATA & skel, int windowWid
 		pos2.y = limitPosY;
 
 		m_pRenderTarget->DrawLine(pos1, pos2, m_pLimitVelocity, 2);
-	}
+	}*/
 
 
 	bool bAttack = false;
